@@ -21,3 +21,20 @@ $factory->define(App\User::class, function (Faker $faker) {
         'remember_token' => str_random(10),
     ];
 });
+
+
+
+$factory->define(App\Concert::class, function (Faker $faker) {
+    return [
+        'title' => $faker->title,
+        'description' => $faker->paragraph,
+        'datetime' => $faker->dateTime(),
+        'price' => $faker->randomNumber(3),
+        'venue' => $faker->word,
+        'venue_address' => $faker->streetAddress,
+        'city' => $faker->city,
+        'state' => $faker->city,
+        'zip' => $faker->postcode,
+        'additional_info' => $faker->paragraph,
+    ];
+});
