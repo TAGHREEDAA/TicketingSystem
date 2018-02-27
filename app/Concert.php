@@ -32,4 +32,8 @@ class Concert extends Model
         return $this->price.' $';
     }
 
+    public function scopePublished($query)
+    {
+        return $query->whereNotNull('published_at');
+    }
 }

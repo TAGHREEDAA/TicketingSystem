@@ -1,7 +1,7 @@
 <?php
 
 use Faker\Generator as Faker;
-
+use Carbon\Carbon;
 /*
 |--------------------------------------------------------------------------
 | Model Factories
@@ -36,5 +36,19 @@ $factory->define(App\Concert::class, function (Faker $faker) {
         'state' => $faker->city,
         'zip' => $faker->postcode,
         'additional_info' => $faker->paragraph,
+//        'published_at' => $faker->dateTime(),
     ];
 });
+
+$factory->state(App\Concert::class, 'published',function (Faker $faker) {
+return [
+    'published_at' => Carbon::parse('-1 day'),
+    ];
+});
+
+$factory->state(App\Concert::class, 'unpublished',function (Faker $faker) {
+return [
+    'published_at' => null,
+    ];
+});
+

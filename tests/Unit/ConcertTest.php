@@ -15,8 +15,9 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
  */
 class ConcertTest extends TestCase
 {
+
     // commented because we don't use create we replaced it with make()
-    //use DatabaseMigrations;
+    use DatabaseMigrations;
 
     /** @test */
     public function testFormattedDate(){
@@ -58,6 +59,29 @@ class ConcertTest extends TestCase
 
         $this->assertEquals('130.55 $', $concert->DollarsPrice);
     }
+
+    /** @test */
+    public function testPublishedConcerts()
+    {
+        //$publishedConcertA = factory(Concert::class)->create(['published_at' => Carbon::parse('-2 weeks')]);
+        $publishedConcertA = factory(Concert::class)->states('published')->create();
+
+//        $publishedConcertB = factory(Concert::class)->create(['published_at' => Carbon::parse('-2 days')]);
+        $publishedConcertB = factory(Concert::class)->states('published')->create();
+
+//        $unPublishedConcert = factory(Concert::class)->create(['published_at' => null]);
+        $unPublishedConcert = factory(Concert::class)->states('unpublished')->create();
+        
+        $allPublishedConcerts = Concert::published()->get() ;
+
+
+
+        $this->assertTrue($allPublishedConcerts->contains($publishedConcertA));
+        $this->assertTrue($allPublishedConcerts->contains($publishedConcertB));
+        $this->assertFalse($allPublishedConcerts->contains($unPublishedConcert));
+    }
+
+
 
 }
 

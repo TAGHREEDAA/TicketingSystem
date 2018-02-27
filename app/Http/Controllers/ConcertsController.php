@@ -14,6 +14,8 @@ class ConcertsController extends Controller
 
     public function show(Concert $concert)
     {
-        return view('concerts.show')->with('concert',$concert);
+        $concert = Concert::published()->findOrFail($concert->id);
+
+        return view('concerts.show')->with('concert', $concert);
     }
 }
