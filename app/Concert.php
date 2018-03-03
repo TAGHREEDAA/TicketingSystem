@@ -2,6 +2,7 @@
 
 namespace App;
 
+use App\Http\Controllers\ConcertOrdersController;
 use Illuminate\Database\Eloquent\Model;
 
 class Concert extends Model
@@ -35,5 +36,26 @@ class Concert extends Model
     public function scopePublished($query)
     {
         return $query->whereNotNull('published_at');
+    }
+
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
+    }
+
+    public function orderTickets($email, $ticket_quantity)
+    {
+        // 1- creates an order with the given email
+
+        $order = $this->orders()->create(['email'=> $email]);
+
+
+        // 2- creates tickets for the order with the given $ticket_quantity
+        foreach (range(1, $ticket_quantity) as $i)
+        {
+            $order->tickets()->create([]);
+        }
+
+        return $order;
     }
 }

@@ -18,3 +18,5 @@ Route::get('/', function () {
 
 Route::get('/concerts','ConcertsController@index');
 Route::get('/concerts/{concert}','ConcertsController@show');
+
+Route::post('/concerts/{id}/orders','ConcertOrdersController@store');
