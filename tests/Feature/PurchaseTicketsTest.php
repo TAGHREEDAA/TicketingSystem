@@ -24,7 +24,7 @@ class PurchaseTicketsTest extends TestCase
         $this->paymentGateway = new FakePaymentGateway;
         $this->app->instance(PaymentGatewayInterface::class, $this->paymentGateway);
 
-        $this->concert = factory(Concert::class)->create();
+        $this->concert = factory(Concert::class)->states('published')->create();
 
     }
 
@@ -42,15 +42,12 @@ class PurchaseTicketsTest extends TestCase
         $this->assertArrayHasKey($fieldName, $response->decodeResponseJson()['errors']);
     }
 
-
-
-
     /** @test  */
-    public function CustomerCanPurchaseTicket()
+    public function CustomerCanPurchasePublishedConcertTicket()
     {
         // Arrange
         // create a concert
-        $this->concert = factory(Concert::class)->create(['price'=> 100]);
+        $this->concert = factory(Concert::class)->states('published')->create(['price'=> 100]);
 
 //        $paymentGateway = new FakePaymentGateway;
 //        $this->app->instance(PaymentGatewayInterface::class, $paymentGateway);
@@ -94,6 +91,60 @@ class PurchaseTicketsTest extends TestCase
 */
     }
 
+    /** @test */
+    public function CanNotPurchaseUnpublishedConcertTickets()
+    {
+//        $this->disableExceptionHandling();
+        // create unpublished  concert
+        $this->concert = factory(Concert::class)->states('unpublished')->create();
+
+        // Act -- charge tickets
+        $response = $this->orderTicketsHelper($this->concert, [
+           'email' => 'test@gmail.com',
+            'ticket_quantity' => 3,
+            'payment_token' => $this->paymentGateway->getValidTestToken(),
+        ]);
+
+        // Assertions
+        // 1- 404 Not found because the concert is supposed to be hidden
+        $response->assertStatus(404);
+
+        // 2- assert no orders for the concert
+        $this->assertEquals(0, $this->concert->orders()->count());
+
+        // 3- make sure the customer is not actually charged
+        $this->assertEquals(0, $this->paymentGateway->totalCharges());
+
+
+    }
+
+
+    /** @test */
+    public function OrderNotCreatedIfPaymentFail()
+    {
+        $this->disableExceptionHandling();
+        // arrang -- need a concert
+
+        // act -- json request to order ticket
+        $response = $this->orderTicketsHelper($this->concert, [
+            'email' => 'test@gmail.com',
+            'ticket_quantity' =>3 ,
+            'payment_token' => 'invalid-payment-token',
+        ]);
+
+        // assertions
+
+        // 1- status code
+        /*http://www.restapitutorial.com/httpstatuscodes.html*/
+        // 402 == payment required
+        // 422 Unprocessable Entity (WebDAV)
+
+        $response->assertStatus(422);
+
+        // 2- order is null
+        $this->assertNull($this->concert->orders()->where('email','test@gmail.com')->first());
+
+    }
 
     /** @test  */
     public function emailIsRequiredToPurchaseTickets()
@@ -242,4 +293,6 @@ class PurchaseTicketsTest extends TestCase
         $this->assertValidationError('payment_token' , $response);
 
     }
+    
+    
 }
