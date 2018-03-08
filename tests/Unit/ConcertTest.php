@@ -3,6 +3,7 @@
 namespace Tests\Unit;
 
 use App\Concert;
+use App\Exceptions\NotEnoughTicketsException;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Tests\TestCase;
@@ -18,6 +19,7 @@ class ConcertTest extends TestCase
 
     // commented because we don't use create we replaced it with make()
     use DatabaseMigrations;
+
 
     /** @test */
     public function testFormattedDate(){
@@ -86,14 +88,89 @@ class ConcertTest extends TestCase
     public function CanOrderTickets()
     {
         $concert = factory(Concert::class)->create();
+        $concert->addTickets(50);
 
         $order = $concert->orderTickets('test@gmail.com', 3);
+
 
         $this->assertEquals('test@gmail.com', $order->email);
         $this->assertEquals(3, $order->tickets()->count());
 
     }
 
+    /** @test */
+    public function canAddTickets()
+    {
+        $concert = factory(Concert::class)->create();
+
+        $concert->addTickets(50);
+
+        // assert tickets created
+        // assert total remaining tickets
+        $this->assertEquals(50, $concert->ticketsRemaining());
+    }
+
+    /** @test */
+    public function testTicketsRemainingNotIncludeOrdered()
+    {
+        $concert = factory(Concert::class)->create();
+        $concert->addTickets(50);
+        $concert->orderTickets('test@gmail.com', 10);
+        $this->assertEquals(40, $concert->ticketsRemaining());
+    }
+
+
+    /** @test */
+    public function PurchaseMoreThanRemainTicketsThrowException()
+    {
+        $this->disableExceptionHandling();
+        $concert = factory(Concert::class)->create();
+        $concert->addTickets(10);
+
+        try{
+            $concert->orderTickets('test@gmail.com', 11);
+        }
+        catch (NotEnoughTicketsException $e)
+        {
+            // no order created for the email
+            $this->assertNull($concert->orders()->where('email','test@gmail.com')->first());
+            // the customer didn't charge ---> in the purchaseFeature test not here
+
+            // the tickets remaining 
+            $this->assertEquals(10, $concert->ticketsRemaining());
+            return; // so the test doesn't fail
+        }
+        $this->fail('Order was successfully created even though no enough tickets!!!');
+    }
+    
+    
+    /** @test */
+    public function CanNotOrderTicketsAlreadyPurchased()
+    {
+        // 1- Arrange -- create concert / add tickets / order some of them
+        $concert = factory(Concert::class)->create();
+        $concert->addTickets(10);
+        $concert->orderTickets('test@gmail.com', 7);
+
+        // 2- Act -- another email order tickets more then remaining
+        try {
+            $concert->orderTickets('user@gmail.com', 5);
+        }
+        catch (NotEnoughTicketsException $e)
+        {
+            // 3- Assert
+            // user order == null
+
+            $this->assertNull($concert->orders()->where('email','user@gmail.com')->first());
+            // the remaining tickets = 3
+            $this->assertEquals(3, $concert->ticketsRemaining());
+
+            return;
+        }
+
+        $this->fail('Order was successfully created even though some tickets are purchased before!!!');
+
+    }
 }
 
 

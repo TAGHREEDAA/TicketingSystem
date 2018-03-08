@@ -15,6 +15,9 @@ class PurchaseTicketsTest extends TestCase
 {
     use DatabaseMigrations;
 
+    protected  $paymentGateway;
+    protected $concert;
+
     protected function SetUp(){
 
         parent::setUp();
@@ -45,10 +48,12 @@ class PurchaseTicketsTest extends TestCase
     /** @test  */
     public function CustomerCanPurchasePublishedConcertTicket()
     {
+        $this->disableExceptionHandling();
         // Arrange
         // create a concert
         $this->concert = factory(Concert::class)->states('published')->create(['price'=> 100]);
 
+        $this->concert->addTickets(3);
 //        $paymentGateway = new FakePaymentGateway;
 //        $this->app->instance(PaymentGatewayInterface::class, $paymentGateway);
 
@@ -76,6 +81,14 @@ class PurchaseTicketsTest extends TestCase
         //MakesHttpRequests.php
         $response->assertStatus(201); // create response code
 
+
+        // JSON assertions to get meaningful messages
+        $response->assertJsonFragment([
+            'email' => 'test@gmail.com',
+            'ticket_quantity' => 3,
+            'charged_amount' => 300,
+        ]);
+
         // 2- Customer charged the correct amount
         $this->assertEquals(300, $this->paymentGateway->totalCharges());
 
@@ -97,6 +110,7 @@ class PurchaseTicketsTest extends TestCase
 //        $this->disableExceptionHandling();
         // create unpublished  concert
         $this->concert = factory(Concert::class)->states('unpublished')->create();
+        $this->concert->addTickets(3);
 
         // Act -- charge tickets
         $response = $this->orderTicketsHelper($this->concert, [
@@ -120,10 +134,41 @@ class PurchaseTicketsTest extends TestCase
 
 
     /** @test */
-    public function OrderNotCreatedIfPaymentFail()
+    public function CanNotOrderMoreThanRemainTickets()
     {
         $this->disableExceptionHandling();
+        // arrange -- create a published concert
+        // $this->concert
+
+        $this->concert->addTickets(50);
+
+
+        // act -- order tickets more than the concert total tickets
+        $response = $this->orderTicketsHelper($this->concert, [
+            'email' => 'test@gmail.com',
+            'ticket_quantity' => 51,
+            'payment_token' => $this->paymentGateway->getValidTestToken(),
+        ]);
+
+        // Assertions
+        // 1- response status 422
+        // 2- no order created with the email test@gmail.com
+        // 3- no charge on customer
+        // 4- the tickets number of the concert remains as it was
+
+
+        $response->assertStatus(422);
+        $this->assertNull($this->concert->orders()->where('email','test@gmail.com')->first());
+        $this->assertEquals(0, $this->paymentGateway->totalCharges());
+        $this->assertEquals(50, $this->concert->ticketsRemaining());
+
+    }
+    /** @test */
+    public function OrderNotCreatedIfPaymentFail()
+    {
+        //$this->disableExceptionHandling();
         // arrang -- need a concert
+        $this->concert->addTickets(3);
 
         // act -- json request to order ticket
         $response = $this->orderTicketsHelper($this->concert, [

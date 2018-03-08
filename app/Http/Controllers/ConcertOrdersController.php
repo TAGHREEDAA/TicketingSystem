@@ -6,6 +6,7 @@ use App\Billing\FakePaymentGateway;
 use App\Billing\PaymentFailedException;
 use App\Billing\PaymentGatewayInterface;
 use App\Concert;
+use App\Exceptions\NotEnoughTicketsException;
 use App\Order;
 use Illuminate\Http\Request;
 
@@ -34,13 +35,7 @@ class ConcertOrdersController extends Controller
             'payment_token' => 'required',
         ]);
 
-    try
-        {
-            // charge the customer for the tickets
-            //$amount = ticket_quantity * concert price
-
-            $this->paymentgateway->charge($request['ticket_quantity'] * $concert->price, $request['payment_token']);
-
+        try {
 
             /**
              *
@@ -62,14 +57,38 @@ class ConcertOrdersController extends Controller
              * **** After Refactoring
              */
 
-            $concert->orderTickets($request['email'], $request['ticket_quantity']);
+            // 1- find tickets
+            // 2- charge the customer
+            // 3- create an order for the tickets
 
-            return response()->json([], 201);
+            $order = $concert->orderTickets($request['email'], $request['ticket_quantity']);
+            $this->paymentgateway->charge($request['ticket_quantity'] * $concert->price, $request['payment_token']);
+
+
+
+            // charge the customer for the tickets
+            //$amount = ticket_quantity * concert price
+//
+//                return response()->json([
+//                    'id' => $order->id,
+//                    'email' => $order->email,
+//                    'ticket_quantity' => $order->ticketQuantity(),
+//                    'charged_amount' => $this->paymentgateway->totalCharges(),
+//                ], 201);
+
+            return response()->json($order, 201);
         }
-    catch (PaymentFailedException $x)
-        {
-            return response()->json([], 422);
-        }
+        catch (PaymentFailedException $e)
+            {
+                // cancelling failed order
+                $order->cancel();
+                return response()->json([], 422);
+            }
+        catch (NotEnoughTicketsException $e)
+            {
+                return response()->json([], 422);
+            }
+
     }
 
 
