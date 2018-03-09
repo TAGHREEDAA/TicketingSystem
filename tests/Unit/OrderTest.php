@@ -14,6 +14,25 @@ class OrderTest extends TestCase
 
     use DatabaseMigrations;
 
+
+    /** @test */
+    public function createOrderFromTicketsAndEmail()
+    {
+        $concert = factory(Concert::class)->create(['price'=> 100]);
+        $concert->addTickets(5);
+
+        $this->assertEquals(5, $concert->ticketsRemaining());
+
+        $order = Order::forTickets($concert->findTickets(3), 'test@gmail.com');
+        
+        $this->assertEquals('test@gmail.com', $order->email);
+        $this->assertEquals(3, $order->ticketQuantity());
+        $this->assertEquals(300, $order->charged_amount);
+        $this->assertEquals(2, $concert->ticketsRemaining());
+
+    }
+
+
     /** @test */
     public function convertOrderToArray()
     {

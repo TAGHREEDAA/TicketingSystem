@@ -166,7 +166,7 @@ class PurchaseTicketsTest extends TestCase
     /** @test */
     public function OrderNotCreatedIfPaymentFail()
     {
-        //$this->disableExceptionHandling();
+        $this->disableExceptionHandling();
         // arrang -- need a concert
         $this->concert->addTickets(3);
 

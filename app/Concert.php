@@ -41,7 +41,8 @@ class Concert extends Model
 
     public function orders()
     {
-        return $this->hasMany(Order::class);
+        return $this->belongsToMany(Order::class, 'tickets');
+//        return $this->hasMany(Order::class);
     }
 
     public function tickets()
@@ -51,28 +52,52 @@ class Concert extends Model
 
     public function orderTickets($email, $ticket_quantity)
     {
+        $tickets = $this->findTickets($ticket_quantity);
+        
+        return $this->createOrder($email, $tickets);
+    }
+
+
+    public function findTickets($quantity)
+    {
         // $tickets = $this->tickets()->whereNull('order_id')->take($ticket_quantity)->get();
 
 
         // refactoring
-        $tickets = $this->tickets()->available()->take($ticket_quantity)->get();
+        $tickets = $this->tickets()->available()->take($quantity)->get();
 
         // if(($this->ticketsRemaining()) < $ticket_quantity)
-        if(($tickets->count()) < $ticket_quantity)
+        if(($tickets->count()) < $quantity)
         {
             throw new NotEnoughTicketsException();
         }
 
+        return $tickets;
 
+    }
+
+    public function createOrder($email, $tickets)
+    {
+
+        return Order::forTickets($tickets, $email);
+
+        /*
         // 1- creates an order with the given email
-        $order = $this->orders()->create(['email'=> $email]);
+        $order = Order::create([
+            'email'=> $email,
+            'charged_amount'=> $tickets->sum('price')]);
+//            'charged_amount'=> $tickets->count() * $this->price]);
+
+// assume that the all tickets have the same price
+//        'charged_amount'=> $tickets->count() * $tickets->first()->concert->price]);
+
 
 
         // 2- creates tickets for the order with the given $ticket_quantity
-        /*foreach (range(1, $ticket_quantity) as $i)
-        {
+        //foreach (range(1, $ticket_quantity) as $i)
+        //{
             //$order->tickets()->create([]);
-        }*/
+        //}
 
         // 2- Allocate tickets for the order with the given $ticket_quantity
 
@@ -80,6 +105,8 @@ class Concert extends Model
             $order->tickets()->save($ticket);
         }
         return $order;
+
+        */
     }
 
     public function addTickets($ticketsNo)
