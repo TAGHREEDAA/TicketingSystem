@@ -9,11 +9,12 @@ class Order extends Model
     protected $guarded = [];
 
 
-    public static function forTickets($tickets, $email)
+    public static function forTickets($tickets, $email, $chargedAmount )
     {
         $order = self::create([
             'email'=> $email,
-            'charged_amount'=> $tickets->sum('price')]);
+            'charged_amount'=> $chargedAmount ]);
+//            'charged_amount'=> $tickets->sum('price')]);
 
         foreach ($tickets as $ticket) {
             $order->tickets()->save($ticket);
@@ -33,15 +34,15 @@ class Order extends Model
         return $this->hasMany(Ticket::class);
     }
 
-    public function cancel()
-    {
-        foreach ($this->tickets as $ticket) {
-//            $ticket->update(['order_id'=> null]);
-            $ticket->release();
-        }
-
-        $this->delete();
-    }
+//    public function cancel()
+//    {
+//        foreach ($this->tickets as $ticket) {
+////            $ticket->update(['order_id'=> null]);
+//            $ticket->release();
+//        }
+//
+//        $this->delete();
+//    }
 
     public function ticketQuantity(){
         return $this->tickets()->count();

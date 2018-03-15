@@ -171,6 +171,81 @@ class ConcertTest extends TestCase
         $this->fail('Order was successfully created even though some tickets are purchased before!!!');
 
     }
+
+
+    /** @test */
+    public function CanReserveAvailableTickets()
+    {
+        $concert = factory(Concert::class)->create();
+        $concert->addTickets(11);
+
+        // pre conditional assertion
+        $this->assertEquals(11, $concert->ticketsRemaining());
+
+
+        $reservedTickets = $concert->reserveTickets(5);
+        $this->assertCount(5, $reservedTickets);
+
+
+        $this->assertEquals(6, $concert->ticketsRemaining());
+
+    }
+
+    /** @test */
+    public function CanNotReservePurchasedTickets()
+    {
+        // arrange
+        // create a concert and add tickets
+        // order some tickets
+
+        $concert = factory(Concert::class)->create();
+        $concert->addTickets(11);
+        $concert->orderTickets('test@gmail.com', 7);
+
+        // act
+        // try to reserve some of the sold tickets
+        try
+        {
+            $reservedTickets = $concert->reserveTickets(6);
+        }
+        catch (NotEnoughTicketsException $e)
+        {
+            // if exception caught thes means good
+            $this->assertEquals(4, $concert->ticketsRemaining());
+            return;
+        }
+
+        // if failed to catch exception this means test failed
+        $this->fail('Tickets are reserved even though they are already purchased!!');
+    }
+
+    /** @test */
+    public function CanNotReserveReservedTickets()
+    {
+        // arrange
+        // create a concert and add tickets
+        // reserve some tickets
+
+        $concert = factory(Concert::class)->create();
+        $concert->addTickets(11);
+        $concert->reserveTickets(7);
+
+        // act
+        // try to reserve some of the reserved tickets
+        try
+        {
+            $reservedTickets = $concert->reserveTickets(6);
+        }
+        catch (NotEnoughTicketsException $e)
+        {
+            // if exception caught thes means good
+            $this->assertEquals(4, $concert->ticketsRemaining());
+            return;
+        }
+
+        // if failed to catch exception this means test failed
+        $this->fail('Tickets are reserved even though they are already reserved!!');
+    }
 }
 
 

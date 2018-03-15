@@ -22,7 +22,13 @@ $factory->define(App\User::class, function (Faker $faker) {
     ];
 });
 
-
+$factory->define(\App\Ticket::class, function (Faker $faker){
+    return [
+      'concert_id' => function(){
+        return factory(\App\Concert::class)->create()->id;
+      },
+    ];
+});
 
 $factory->define(App\Concert::class, function (Faker $faker) {
     return [
@@ -49,6 +55,13 @@ return [
 $factory->state(App\Concert::class, 'unpublished',function (Faker $faker) {
 return [
     'published_at' => null,
+    ];
+});
+
+
+$factory->state(\App\Ticket::class, 'reserved', function (Faker $faker){
+    return [
+        'reserved_at' => Carbon::now()
     ];
 });
 

@@ -2,19 +2,30 @@
 
 namespace App;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 
 class Ticket extends Model
 {
     protected $guarded = [];
+
     public function scopeAvailable($query)
     {
-        return $query->whereNull('order_id');
+        return $query->whereNull('order_id')->whereNull('reserved_at');
+    }
+
+
+    public function reserve()
+    {
+        // update reserved_at field
+        $this->update(['reserved_at' => Carbon::now()]);
     }
 
     public function release()
     {
-        $this->update(['order_id'=> null]);
+//        $this->update(['order_id'=> null]);
+        $this->update(['reserved_at'=> null]);
+
     }
 
     public function concert()
@@ -27,4 +38,5 @@ class Ticket extends Model
     {
         return $this->concert->price;
     }
+
 }

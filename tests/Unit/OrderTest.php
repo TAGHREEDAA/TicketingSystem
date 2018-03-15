@@ -16,14 +16,14 @@ class OrderTest extends TestCase
 
 
     /** @test */
-    public function createOrderFromTicketsAndEmail()
+    public function createOrderFromTicketsEmailAndAmount()
     {
-        $concert = factory(Concert::class)->create(['price'=> 100]);
+        $concert = factory(Concert::class)->create();
         $concert->addTickets(5);
 
         $this->assertEquals(5, $concert->ticketsRemaining());
 
-        $order = Order::forTickets($concert->findTickets(3), 'test@gmail.com');
+        $order = Order::forTickets($concert->findTickets(3), 'test@gmail.com', 300);
         
         $this->assertEquals('test@gmail.com', $order->email);
         $this->assertEquals(3, $order->ticketQuantity());
@@ -53,25 +53,25 @@ class OrderTest extends TestCase
 
     }
 
-    /** @test */
-    public function releaseTicketsWhenCancelOrder()
-    {
-        $this->disableExceptionHandling();
-        // Arrange: 1- create a concert and add tickets
-        $concert = factory(Concert::class)->create();
-        $concert->addTickets(10);
-
-        // Arrange: 2- order tickets
-        $order = $concert->orderTickets('test@gmail.com', 5);
-        $this->assertEquals(5, $concert->ticketsRemaining());
-
-        // Act: cancel order
-        $order->cancel();
-
-        // assert tickets remaining
-        $this->assertEquals(10, $concert->ticketsRemaining());
-        
-        $this->assertNull(Order::find($order->id));
-
-    }
+//    cancelled test
+//    public function releaseTicketsWhenCancelOrder()
+//    {
+//        $this->disableExceptionHandling();
+//        // Arrange: 1- create a concert and add tickets
+//        $concert = factory(Concert::class)->create();
+//        $concert->addTickets(10);
+//
+//        // Arrange: 2- order tickets
+//        $order = $concert->orderTickets('test@gmail.com', 5);
+//        $this->assertEquals(5, $concert->ticketsRemaining());
+//
+//        // Act: cancel order
+//        $order->cancel();
+//
+//        // assert tickets remaining
+//        $this->assertEquals(10, $concert->ticketsRemaining());
+//
+//        $this->assertNull(Order::find($order->id));
+//
+//    }
 }

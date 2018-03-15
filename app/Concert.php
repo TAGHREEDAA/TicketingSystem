@@ -58,6 +58,22 @@ class Concert extends Model
     }
 
 
+    public function reserveTickets($quantity)
+    {
+        // 1- find tickets
+        $tickets = $this->findTickets($quantity);
+
+        foreach ($tickets as $ticket)
+        {
+            $ticket->reserve();
+        }
+
+        // 2- reserve
+        return $tickets;
+
+    }
+
+
     public function findTickets($quantity)
     {
         // $tickets = $this->tickets()->whereNull('order_id')->take($ticket_quantity)->get();
@@ -79,7 +95,7 @@ class Concert extends Model
     public function createOrder($email, $tickets)
     {
 
-        return Order::forTickets($tickets, $email);
+        return Order::forTickets($tickets, $email, $tickets->sum('price'));
 
         /*
         // 1- creates an order with the given email

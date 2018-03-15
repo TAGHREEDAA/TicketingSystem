@@ -16,17 +16,17 @@ class FakePaymentGatewayTest extends TestCase
     public function ValidTokenChargesAreSuccessful()
     {
         // Arrange --> create a paymentgateway object
-        $paymentgateway = new FakePaymentGateway;
-        $this->app->instance(PaymentGatewayInterface::class, $paymentgateway);
+        $paymentGateway = new FakePaymentGateway;
+        $this->app->instance(PaymentGatewayInterface::class, $paymentGateway);
 
 
         // Act --> charge an amount with a valid token
-        $paymentgateway->charge(2500, $paymentgateway->getValidTestToken());
+        $paymentGateway->charge(2500, $paymentGateway->getValidTestToken());
 
 
 
         // Assert --> the total charges by the gateway == 2500
-        $this->assertEquals(2500, $paymentgateway->totalCharges());
+        $this->assertEquals(2500, $paymentGateway->totalCharges());
         
     }
 
@@ -36,11 +36,11 @@ class FakePaymentGatewayTest extends TestCase
     {
         try {
             // Arrange
-            $paymentgateway = new FakePaymentGateway();
-            $this->app->instance(PaymentGatewayInterface::class, $paymentgateway);
+            $paymentGateway = new FakePaymentGateway();
+            $this->app->instance(PaymentGatewayInterface::class, $paymentGateway);
 
             // Act -- make charge with invalid token
-            $paymentgateway->charge(2500, 'invalid-token');
+            $paymentGateway->charge(2500, 'invalid-token');
         }
         catch (PaymentFailedException $e)
         {
@@ -50,5 +50,29 @@ class FakePaymentGatewayTest extends TestCase
 
         // will fail the test if the exception doesn't thrown
         $this->fail();
+    }
+    
+    
+    /** @test */
+    public function RunHookBeforeFirstCharge()
+    {
+        $paymentGateway = new FakePaymentGateway();
+
+        $timesCallbackRan = 0;
+
+        $paymentGateway->beforeFirstCharge(function ($paymentGateway) use (&$timesCallbackRan){
+            $timesCallbackRan++;
+
+            $paymentGateway->charge(250, $paymentGateway->getValidTestToken());
+
+            // to assert that call back called first
+            $this->assertEquals(250, $paymentGateway->totalCharges());
+        });
+
+        $paymentGateway->charge(250, $paymentGateway->getValidTestToken());
+
+        $this->assertEquals(500, $paymentGateway->totalCharges());
+        $this->assertEquals(1 , $timesCallbackRan);
+
     }
 }

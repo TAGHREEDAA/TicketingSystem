@@ -33,7 +33,11 @@ class PurchaseTicketsTest extends TestCase
 
     private function orderTicketsHelper($concert, $params)
     {
+        // to handle sub-requests
+        $savedRequest = $this->app['request'];
         $response = $this->json('POST', '/concerts/'.$concert->id.'/orders',$params);
+
+        $this->app['request'] = $savedRequest  ;
         return $response;
     }
 
@@ -104,6 +108,65 @@ class PurchaseTicketsTest extends TestCase
 */
     }
 
+    
+    /** @test */
+    public function CustomerCanNotPurchaseTicketAnotherCustomerTryingToPurchase()
+    {
+
+        $this->disableExceptionHandling();
+        $concert = factory(Concert::class)->states('published')->create(['price'=> 100]);
+        $concert->addTickets(5);
+
+
+        // just registering the callback
+        // the second request to be called within the charge of the first
+        $this->paymentGateway->beforeFirstCharge(function ($paymentGateway) use ($concert){
+
+            // backup request of customer A
+//            $requestA= $this->app['request'];
+
+            $responseOrderB = $this->orderTicketsHelper($concert, [
+                'email' => 'CustomerB@gmail.com',
+                'ticket_quantity' => 3,
+                'payment_token' => $this->paymentGateway->getValidTestToken(),
+            ]);
+
+            // restore request of customer A
+//            $this->app['request'] = $requestA;
+
+            // assert order fail for this customer 
+
+            // assert response status 422
+            $responseOrderB->assertStatus(422);
+
+            // assert 0 total charge
+            $this->assertEquals(0, $paymentGateway->totalCharges());
+
+            // assert no order created for B
+            $this->assertNull($concert->orders()->where('email','CustomerB@gmail.com')->first());
+
+
+        });
+
+        $responseOrderA = $this->orderTicketsHelper($concert, [
+            'email' => 'CustomerA@gmail.com',
+            'ticket_quantity' => 3,
+            'payment_token' => $this->paymentGateway->getValidTestToken(),
+        ]);
+
+        // assert order created for this customer A
+        // assert 300 total charge
+        $this->assertEquals(300, $this->paymentGateway->totalCharges());
+
+        // assert order created for A
+        $this->assertNotNull($concert->orders()->where('email','CustomerA@gmail.com')->first());
+
+        // assert 3 tickets
+        $this->assertEquals(3, $concert->orders()->where('email','CustomerA@gmail.com')->first()->ticketQuantity());
+
+
+    }
+    
     /** @test */
     public function CanNotPurchaseUnpublishedConcertTickets()
     {
@@ -188,6 +251,7 @@ class PurchaseTicketsTest extends TestCase
 
         // 2- order is null
         $this->assertNull($this->concert->orders()->where('email','test@gmail.com')->first());
+        $this->assertEquals(3, $this->concert->ticketsRemaining());
 
     }
 

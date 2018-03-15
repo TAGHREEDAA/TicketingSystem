@@ -8,6 +8,7 @@ use App\Billing\PaymentGatewayInterface;
 use App\Concert;
 use App\Exceptions\NotEnoughTicketsException;
 use App\Order;
+use App\Reservation;
 use Illuminate\Http\Request;
 
 class ConcertOrdersController extends Controller
@@ -37,55 +38,20 @@ class ConcertOrdersController extends Controller
 
         try {
 
-            /**
-             *
-             *
-             *** Before Refactoring ***
-             *
-             * // create order
-             * $order = $concert->orders()->create(['email'=>$request['email']]);
-             *
-             * // create tickets for the order
-             * foreach (range(1, $request['ticket_quantity']) as $i)
-             * {
-             * $order->tickets()->create([]);
-             * }
-             *
-             */
-
-            /**
-             * **** After Refactoring
-             */
-
             // 1- find tickets
-            $tickets = $concert->findTickets($request['ticket_quantity']);
+//            $tickets = $concert->findTickets($request['ticket_quantity']);
+            $tickets = $concert->reserveTickets($request['ticket_quantity']);
+            $reservation = new Reservation($tickets);
 
             // 2- charge the customer
-//            $order = $concert->orderTickets($request['email'], $request['ticket_quantity']);
-            $this->paymentgateway->charge($request['ticket_quantity'] * $concert->price, $request['payment_token']);
+            $this->paymentgateway->charge( $reservation->totalCost(), $request['payment_token']);
 
             // 3- create an order for the tickets
-//            $order = $concert->orderTickets($request['email'], $tickets);
-
-
-//            $order =  $concert->createOrder($request['email'], $tickets);
-
-            // charge the customer for the tickets
-            //$amount = ticket_quantity * concert price
-//
-//                return response()->json([
-//                    'id' => $order->id,
-//                    'email' => $order->email,
-//                    'ticket_quantity' => $order->ticketQuantity(),
-//                    'charged_amount' => $this->paymentgateway->totalCharges(),
-//                ], 201);
-
-            return response()->json(Order::forTickets($tickets, $request['email']), 201);
+            return response()->json(Order::forTickets($tickets, $request['email'], $reservation->totalCost()), 201);
         }
         catch (PaymentFailedException $e)
             {
-                // cancelling failed order
-//                $order->cancel(); because we refactor the design and make it not creating the order untill payment is successful
+                $reservation->cancel();
                 return response()->json([], 422);
             }
         catch (NotEnoughTicketsException $e)

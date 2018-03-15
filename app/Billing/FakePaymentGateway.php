@@ -7,6 +7,8 @@ class FakePaymentGateway implements PaymentGatewayInterface
 {
 
     private $charges;
+    private $beforeFirstChargeCallback;
+
 
     public function __construct()
     {
@@ -26,12 +28,26 @@ class FakePaymentGateway implements PaymentGatewayInterface
 
     public function charge($amount, $token)
     {
+        if ($this->beforeFirstChargeCallback != null)
+        {
+            $callback = $this->beforeFirstChargeCallback;
+
+            $this->beforeFirstChargeCallback = null ; // to prevent infinite recursion
+
+            $callback->__invoke($this);
+        }
+
         if ($token !== $this->getValidTestToken())
         {
             throw new PaymentFailedException();
         }
         else
             $this->charges[] = $amount;
+    }
+
+    public function beforeFirstCharge($callback)
+    {
+        $this->beforeFirstChargeCallback = $callback;
     }
 
 
