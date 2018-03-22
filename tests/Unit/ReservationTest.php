@@ -15,7 +15,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class ReservationTest extends TestCase
 {
-//    use DatabaseMigrations;
+    use DatabaseMigrations;
 
     /** @test */
     public function totalCostCalculation()
@@ -55,16 +55,43 @@ class ReservationTest extends TestCase
             (object)['price' => 100] ,
         ]);
 
-        $reservation = new Reservation($tickets);
+        $reservation = new Reservation($tickets, 'test@gmail.com');
 
         $this->assertEquals(500, $reservation->totalCost());
 
 
     }
 
+    /** @test */
+    public function retrievingReservationTickets()
+    {
+        // the simplest way
+        $tickets = collect([
+            (object)['price' => 100] ,
+            (object)['price' => 100] ,
+            (object)['price' => 100] ,
+            (object)['price' => 100] ,
+            (object)['price' => 100] ,
+        ]);
+
+        $reservation = new Reservation($tickets, 'test@gmail.com');
+
+        $this->assertEquals($tickets, $reservation->tickets());
+
+    }
 
     /** @test */
-    public function ResleaseReservedTicketsWhenCancelReservation()
+    public function retrievingReservationEmail()
+    {
+
+        $reservation = new Reservation(collect(), 'test@gmail.com');
+
+        $this->assertEquals('test@gmail.com', $reservation->email());
+
+    }
+
+    /** @test */
+    public function ReleaseReservedTicketsWhenCancelReservation()
     {
 
 //        $ticket1 = Mockery::mock(Ticket::class);
@@ -109,7 +136,7 @@ class ReservationTest extends TestCase
             Mockery::spy(Ticket::class)
         ]);
 
-        $reservation = new Reservation($tickets);
+        $reservation = new Reservation($tickets, 'test@gmail.com');
 
         $reservation->cancel();
 
@@ -117,6 +144,25 @@ class ReservationTest extends TestCase
         {
             $ticket->shouldHaveReceived('release');
         }
+
+    }
+
+
+    /** @test */
+    public function CompleteReservation()
+    {
+        $concert = factory(Concert::class)->create(['price'=>100]);
+
+        $tickets = factory(Ticket::class, 3)->create(['concert_id'=> $concert->id]);
+
+        $reservation = new Reservation($tickets, 'test@gmail.com');
+
+        $order = $reservation->complete();
+
+        $this->assertEquals('test@gmail.com', $order->email);
+        $this->assertEquals(3, $order->ticketQuantity());
+        $this->assertEquals(300, $order->charged_amount);
+
 
     }
 }

@@ -27,7 +27,7 @@ class TicketTest extends TestCase
         $this->assertEquals($order->id, $ticket->order_id);
 
         $ticket->release();
-        $this->assertNull($ticket->fresh()->order_id);
+        $this->assertNull($ticket->fresh()->reserved_at);
 
     }
 

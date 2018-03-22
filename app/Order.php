@@ -8,7 +8,6 @@ class Order extends Model
 {
     protected $guarded = [];
 
-
     public static function forTickets($tickets, $email, $chargedAmount )
     {
         $order = self::create([
@@ -22,7 +21,6 @@ class Order extends Model
 
         return $order;
     }
-
 
     public function concert()
     {
